@@ -62,7 +62,7 @@ def run_training(args):
             optimizer=opt,
             metrics=['accuracy'])
 
-        train_dataset = make_datasets_unbatched(datasets, set_name='train').batch(batch_size)
+        train_dataset = make_datasets_unbatched(datasets, set_name='train').batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
 
     test_dataset = make_datasets_unbatched(datasets, set_name='test').batch(batch_size, drop_remainder=True)
 

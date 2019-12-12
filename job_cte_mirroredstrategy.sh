@@ -13,4 +13,7 @@
 
 source pc1_load_modules.sh
 
+#export TF_CPP_MIN_LOG_LEVEL=0
+#export NCCL_DEBUG=INFO
+
 python3 tf_keras_mirroredstrategy_mnist.py
