@@ -6,26 +6,10 @@ import os
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from common import get_compiled_model
+from common import get_model, make_datasets_unbatched
 from epoch_time_callback import EpochTimeCallback
 
 BUFFER_SIZE = 10000
-
-
-def make_datasets_unbatched(datasets, set_name='train'):
-    # Scaling MNIST data from (0, 255] to (0., 1.]
-    def scale(image, label):
-        image = tf.cast(image, tf.float32)
-        image /= 255
-
-        label = tf.one_hot(label, depth=10)
-        return image, label
-
-    if 'train' in set_name:
-        return datasets['train'].map(scale, num_parallel_calls=tf.data.experimental.AUTOTUNE).\
-            cache().repeat().shuffle(BUFFER_SIZE)
-    else:
-        return datasets['test'].map(scale, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
 
 def run_training(args):
@@ -47,18 +31,25 @@ def run_training(args):
     with strategy.scope():
         print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
-        model = get_compiled_model(learning_rate)
+        model = get_model()
+        opt = tf.keras.optimizers.SGD(learning_rate)
+        model.compile(
+            loss='categorical_crossentropy',
+            optimizer=opt,
+            metrics=['accuracy'])
 
         train_dataset = make_datasets_unbatched(datasets, set_name='train').batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
 
-    # Define the checkpoint directory to store the checkpoints
-    checkpoint_dir = '/gpfs/projects/sam14/sam14016/training_checkpoints'
-    # Name of the checkpoint files
+    checkpoint_dir = '/gpfs/projects/sam14/sam14016/training_checkpoints/{}'.format(os.environ['SLURM_JOB_ID'])
+    if not os.path.exists(checkpoint_dir):
+        os.makedirs(checkpoint_dir, exist_ok=True)
     checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
 
     callbacks = [
         tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix,
-                                           save_weights_only=True),
+                                           save_weights_only=True,
+                                           save_best_only=True,
+                                           monitor='loss'),
         EpochTimeCallback()]
 
     model.fit(x=train_dataset, epochs=args.epochs,
@@ -79,6 +70,7 @@ def main():
 
     print("VERSION TF")
     print(tf.__version__)
+    print("SLURM_CPUS_PER_TASK: {}\nSLURM_JOB_NODELIST: {}".format(os.environ['SLURM_CPUS_PER_TASK'], os.environ['SLURM_JOB_NODELIST']))
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=20)
