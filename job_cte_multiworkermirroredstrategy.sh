@@ -4,8 +4,8 @@
 #SBATCH --workdir=.
 #SBATCH --error=logs/error.log
 #SBATCH --output=logs/output.log
-#SBATCH --nodes=4
-#SBATCH --ntasks=4
+#SBATCH --nodes=2
+#SBATCH --ntasks=2
 #SBATCH --cpus-per-task=160
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:4

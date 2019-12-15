@@ -29,12 +29,7 @@ def make_datasets_unbatched(datasets, set_name='train'):
 
 
 def run_training(args):
-    strategy = tf.distribute.MirroredStrategy(
-        cross_device_ops=
-        tf.distribute.NcclAllReduce(),
-        # tf.distribute.HierarchicalCopyAllReduce(),
-        # tf.distribute.ReductionToOneDevice(),
-    )
+    strategy = tf.distribute.OneDeviceStrategy("/cpu:0")
 
     datasets, info = tfds.load(name='mnist',
                                with_info=True,
@@ -52,7 +47,7 @@ def run_training(args):
         train_dataset = make_datasets_unbatched(datasets, set_name='train').batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
 
     # Define the checkpoint directory to store the checkpoints
-    checkpoint_dir = '/gpfs/projects/sam14/sam14016/training_checkpoints'
+    checkpoint_dir = './training_checkpoints'
     # Name of the checkpoint files
     checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
 

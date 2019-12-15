@@ -1,11 +1,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
-import time
+import os
 
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from tensorflow.keras import models, layers
+
+from common import get_compiled_model
+from epoch_time_callback import EpochTimeCallback
 
 BUFFER_SIZE = 10000
 
@@ -27,36 +29,37 @@ def make_datasets_unbatched(datasets, set_name='train'):
 
 
 def run_training(args):
-    model = models.Sequential()
-    model.add(layers.Conv2D(32, (5, 5), activation='relu', input_shape=(28, 28, 1)))
-    model.add(layers.MaxPooling2D((2, 2)))
-    model.add(layers.Conv2D(64, (5, 5), activation='relu'))
-    model.add(layers.MaxPooling2D((2, 2)))
-    model.add(layers.Flatten())
-    model.add(layers.Dense(10, activation='softmax'))
-    model.summary()
-
-    opt = tf.keras.optimizers.SGD(args.learning_rate)
-
-    model.compile(
-        loss='categorical_crossentropy',
-        optimizer=opt,
-        metrics=['accuracy'])
 
     datasets, info = tfds.load(name='mnist',
                                with_info=True,
                                as_supervised=True,
                                shuffle_files=False)
 
-    train_dataset = make_datasets_unbatched(datasets, set_name='train').batch(args.batch_size)
-    test_dataset = make_datasets_unbatched(datasets, set_name='test').batch(args.batch_size, drop_remainder=True)
+    batch_size = args.batch_size
+    learning_rate = args.learning_rate
+
+    model = get_compiled_model(learning_rate)
+
+    train_dataset = make_datasets_unbatched(datasets, set_name='train').batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+
+    # Define the checkpoint directory to store the checkpoints
+    checkpoint_dir = '/gpfs/projects/sam14/sam14016/training_checkpoints'
+    # Name of the checkpoint files
+    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
+
+    callbacks = [
+        tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix,
+                                           save_weights_only=True),
+        EpochTimeCallback()]
 
     model.fit(x=train_dataset, epochs=args.epochs,
-              steps_per_epoch=info.splits['train'].num_examples // args.batch_size,
-              verbose=2)
+              steps_per_epoch=info.splits['train'].num_examples // batch_size,
+              verbose=2,
+              callbacks=callbacks)
 
-    test_loss, test_acc = model.evaluate(x=test_dataset, verbose=0,
-                                         steps=info.splits['test'].num_examples // args.batch_size)
+    test_dataset = make_datasets_unbatched(datasets, set_name='test').batch(batch_size, drop_remainder=True)
+    test_loss, test_acc = model.evaluate(x=test_dataset, verbose=2,
+                                         steps=info.splits['test'].num_examples // batch_size)
 
     print('Test loss:', test_loss)
     print('Test accuracy:', test_acc)
@@ -73,10 +76,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--learning_rate', type=float, default=0.001)
 
-    start_time = time.time()
     run_training(parser.parse_args())
-    elapsed_time = time.time() - start_time
-    print('Time: ', time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
 
 
 if __name__ == '__main__':
