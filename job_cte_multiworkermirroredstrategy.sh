@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name="test_job_multiworkermirroredstrategy"
-#SBATCH --time=00-00:05:00
+#SBATCH --job-name="tf_distribute_multiworkermirroredstategy"
+#SBATCH --time=00-01:00:00
 #SBATCH --workdir=.
 #SBATCH --error=logs/multiworkermirroredstrategy_%j_error.log
 #SBATCH --output=logs/multiworkermirroredstrategy_%j_output.log
-#SBATCH --nodes=8
-#SBATCH --ntasks=8
+#SBATCH --nodes=9
+#SBATCH --ntasks=9
 #SBATCH --cpus-per-task=160
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:4
@@ -19,4 +19,4 @@ source pc1_load_modules.sh
 #export NCCL_SHM_DISABLE=0
 #export NCCL_P2P_DISABLE=1
 
-srun python3 tf_keras_multiworkermirroredstrategy_mnist.py
+srun python3 tf_keras_multiworkermirroredstrategy.py "$@"

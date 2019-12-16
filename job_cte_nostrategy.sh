@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name="test_job"
-#SBATCH --time=00-00:05:00
+#SBATCH --job-name="tf_distribute_no_strategy"
+#SBATCH --time=00-00:30:00
 #SBATCH --workdir=.
 #SBATCH --error=logs/nostrategy_%j_error.log
 #SBATCH --output=logs/nostrategy_%j_output.log
@@ -16,4 +16,4 @@ source pc1_load_modules.sh
 #export TF_CPP_MIN_LOG_LEVEL=0
 #export NCCL_DEBUG=INFO
 
-python3 tf_keras_mnist.py
+python3 tf_keras_nostrategy.py "$@"
