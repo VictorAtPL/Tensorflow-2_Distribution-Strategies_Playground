@@ -67,8 +67,9 @@ def generate_plot(args):
 
         architecture_regex_result = re.search(REGEX_ARCHITECTURE, file_content)
         architecture = None if not architecture_regex_result else architecture_regex_result.groups()[0]
+        architecture = None if 'sequential' in architecture else architecture
 
-        if (not args.architecture and args.architecture == architecture) or (architecture and args.architecture in architecture):
+        if (not args.architecture and args.architecture == architecture) or (args.architecture and architecture and args.architecture in architecture):
             results_dict['GPUs'].append(int(no_of_devices))
             results_dict['Time'].append(float(time))
             results_dict['Strategy'].append(strategy)
@@ -89,7 +90,7 @@ def generate_plot(args):
 
     if not args.architecture:
         args.architecture = "SA-MIRI's network"
-    ax.set_title("{} / {} / Marenostrum Power9-CTE / TensorFlow 2.0".format(args.dataset, args.architecture.upper()))
+    ax.set_title("{} / {} / MareNostrum Power9-CTE / TensorFlow 2.0".format(args.dataset, args.architecture.upper()))
     ax.set_xlim(0, df['GPUs'].max() + 1)
     ax.set_xticklabels(["" if tick in missing_gpus else tick for tick in df['GPUs'].values])
 
